@@ -170,7 +170,7 @@ console.log(`TVL: ${tvl.toString()}`);
 ```typescript
 {
   state: PublicKey,           // PDA: ["state"]
-  onycMint: PublicKey,        // From state.onyc_mint
+  onycMint: PublicKey,        // From state.onycMint
   circulatingSupplyExcludedBalance: PublicKey  // PDA: ["circ_supply_excl_balance"]
 }
 ```
@@ -209,6 +209,29 @@ view that subtracts the offer-vault ATA directly. `get_circulating_supply`
 remains the legacy ONyc supply view. The V2 views use the cached ONyc
 excluded-balance PDA, which is also what `refresh_market_stats` and the Prop AMM
 paths use.
+
+---
+
+## Approval-Gated Offer Integration
+
+Offers with `needs_approval = true` require an Ed25519 signature from one of the configured approvers. The signed `ApprovalMessage` is scoped to the exact offer being executed.
+
+The signed message fields are:
+
+```typescript
+{
+  programId: PublicKey,
+  offer: PublicKey,
+  userPubkey: PublicKey,
+  expiryUnix: bigint,
+}
+```
+
+The signer must serialize and sign all four fields. The `offer` field must be the exact offer account that will be executed. A signature for another offer is rejected even when the program, user and expiry are otherwise valid.
+
+Because the signed serialization includes the offer key, this is a breaking change for clients that construct approval messages. Existing approval signatures should be discarded and re-issued using the new schema after upgrading.
+
+Permissionless offer paths intentionally do not use this approval requirement; do not assume an approval signature is required when calling a permissionless instruction.
 
 ---
 
