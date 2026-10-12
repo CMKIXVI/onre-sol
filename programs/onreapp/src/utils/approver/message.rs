@@ -1,22 +1,20 @@
 use anchor_lang::prelude::Pubkey;
 use anchor_lang::{AnchorDeserialize, AnchorSerialize};
 
-/// Message structure for approval verification
+/// Message structure for approval verification.
 ///
-/// This structure contains the data required to verify that a user has received
-/// approval from a trusted authority to perform a specific action within the program.
-/// The message is signed by the trusted authority using Ed25519 signature.
+/// The approval is scoped to one concrete offer so that a valid signature for one
+/// approval-gated market cannot be replayed against another market for the same user.
 ///
-/// # Fields
-/// - `program_id`: The ID of the program for which this approval is valid
-/// - `user_pubkey`: The public key of the user who is approved to perform the action
-/// - `expiry_unix`: Unix timestamp when this approval expires
+/// This serialized message is part of the off-chain approval signing protocol.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ApprovalMessage {
-    /// The program ID this approval is valid for
+    /// The program ID this approval is valid for.
     pub program_id: Pubkey,
-    /// The user public key that is approved
+    /// The offer account this approval is valid for.
+    pub offer: Pubkey,
+    /// The user public key that is approved.
     pub user_pubkey: Pubkey,
-    /// Unix timestamp when this approval expires
+    /// Unix timestamp when this approval expires.
     pub expiry_unix: u64,
 }
