@@ -212,6 +212,29 @@ paths use.
 
 ---
 
+## Approval-Gated Offer Integration
+
+Offers with `needs_approval = true` require an Ed25519 signature from one of the configured approvers. The signed `ApprovalMessage` is scoped to the exact offer being executed.
+
+The signed message fields are:
+
+```typescript
+{
+  programId: PublicKey,
+  offer: PublicKey,
+  userPubkey: PublicKey,
+  expiryUnix: bigint,
+}
+```
+
+The signer must serialize and sign all four fields. The `offer` field must be the exact offer account that will be executed. A signature for another offer is rejected even when the program, user and expiry are otherwise valid.
+
+Because the signed serialization includes the offer key, this is a breaking change for clients that construct approval messages. Existing approval signatures should be discarded and re-issued using the new schema after upgrading.
+
+Permissionless offer paths intentionally do not use this approval requirement; do not assume an approval signature is required when calling a permissionless instruction.
+
+---
+
 ## PDA Derivations
 
 All PDAs use the program ID as the base. Here are the derivation seeds:
