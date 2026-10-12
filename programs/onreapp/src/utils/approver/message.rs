@@ -5,16 +5,14 @@ use anchor_lang::{AnchorDeserialize, AnchorSerialize};
 ///
 /// This structure contains the data required to verify that a user has received
 /// approval from a trusted authority to perform a specific action within the program.
-/// The message is signed by the trusted authority using Ed25519 signature.
-///
-/// # Fields
-/// - `program_id`: The ID of the program for which this approval is valid
-/// - `user_pubkey`: The public key of the user who is approved to perform the action
-/// - `expiry_unix`: Unix timestamp when this approval expires
+/// The approval is scoped to one concrete offer so a signature cannot be replayed
+/// against another approval-gated offer for the same user.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ApprovalMessage {
     /// The program ID this approval is valid for
     pub program_id: Pubkey,
+    /// The offer account this approval is valid for
+    pub offer: Pubkey,
     /// The user public key that is approved
     pub user_pubkey: Pubkey,
     /// Unix timestamp when this approval expires
