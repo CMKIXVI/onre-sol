@@ -47,7 +47,11 @@ pub fn calculate_gross_buffer_accrual(
     current_yield: u64,
     seconds_elapsed: u64,
 ) -> Result<u64> {
-    let apr_delta = gross_yield.saturating_sub(current_yield);
+    // A negative gross-minus-current APR is an invalid accounting state. Do not
+    // silently clamp it to zero: callers must notice the configuration mismatch.
+    let apr_delta = gross_yield
+        .checked_sub(current_yield)
+        .ok_or(crate::OnreError::MathOverflow)?;
     calculate_accrual_from_apr_delta(previous_supply, apr_delta, current_yield, seconds_elapsed)
 }
 
@@ -142,6 +146,17 @@ mod tests {
             calculate_gross_buffer_accrual(1_000_000_000, 150_000, 50_000, 0).unwrap(),
             0
         );
+    }
+
+    #[test]
+    fn calculate_gross_buffer_accrual_rejects_current_yield_above_gross_yield() {
+        assert!(calculate_gross_buffer_accrual(
+            1_000_000_000,
+            50_000,
+            50_001,
+            HALF_YEAR_SECONDS,
+        )
+        .is_err());
     }
 
     #[test]
