@@ -69,7 +69,7 @@ const program = new Program(idl, provider);
 
 **Example:**
 ```typescript
-const tokenInMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const tokenInMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGkGZwyTDt1v"); // USDC
 const tokenOutMint = new PublicKey("5Y8NV33Vv7WbnLfq3zBcKSdYPrk7g2KoiQoe7M2tcxp5"); // ONyc
 
 const nav = await program.methods
@@ -127,7 +127,7 @@ console.log(`APY: ${apyPercent.toFixed(2)}%`); // e.g., 10.50%
 ```typescript
 {
   offer: PublicKey,          // PDA: ["offer", tokenInMint, tokenOutMint]
-  tokenInMint: PublicKey,
+  tokenInMint: PublicKey,  // Input token mint
   tokenOutMint: PublicKey,   // must be the configured ONyc mint
   state: PublicKey,          // PDA: ["state"]
   circulatingSupplyExcludedBalance: PublicKey // PDA: ["circ_supply_excl_balance"]
@@ -177,13 +177,11 @@ console.log(`TVL: ${tvl.toString()}`);
 
 **Example:**
 ```typescript
-// Derive state PDA
 const [statePda] = PublicKey.findProgramAddressSync(
   [Buffer.from("state")],
   program.programId
 );
 
-// Fetch state to get ONyc mint
 const state = await program.account.state.fetch(statePda);
 const onycMint = state.onycMint;
 
@@ -204,11 +202,20 @@ const supply = await program.methods
 console.log(`Circulating Supply: ${supply.toString()}`);
 ```
 
-`get_tvl` retains its pre-V5 account layout and remains a pair-specific legacy
-view that subtracts the offer-vault ATA directly. `get_circulating_supply`
-remains the legacy ONyc supply view. The V2 views use the cached ONyc
-excluded-balance PDA, which is also what `refresh_market_stats` and the Prop AMM
-paths use.
+### Legacy versus V2 market views
+
+The legacy and V2 market views intentionally have different account contracts:
+
+| View | Compatibility | Supply/exclusion model | Recommendation |
+|---|---|---|---|
+| `get_tvl` | Legacy | Pair-specific offer-vault exclusion | Keep only for legacy clients |
+| `get_circulating_supply` | Legacy | Legacy ONyc supply calculation | Keep only for legacy clients |
+| `get_tvl_v2` | Current | Cached canonical excluded-balance PDA | Preferred |
+| `get_circulating_supply_v2` | Current | Cached canonical excluded-balance PDA | Preferred |
+
+Do not mix a legacy view's account assumptions with V2 market-stat or Prop AMM accounting. New integrations should use the V2 views so their circulating-supply exclusion model matches `refresh_market_stats` and the Prop AMM paths.
+
+The legacy views are retained for compatibility and should not be interpreted as alternate implementations of the same accounting formula.
 
 ---
 
@@ -297,10 +304,10 @@ Operational note:
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const vaultTokenAccount = getAssociatedTokenAddressSync(
-  tokenMint,           // The token mint
-  vaultAuthority,      // The vault authority PDA
-  true,                // allowOwnerOffCurve = true
-  TOKEN_PROGRAM_ID     // Or TOKEN_2022_PROGRAM_ID
+  tokenMint,
+  vaultAuthority,
+  true,
+  TOKEN_PROGRAM_ID
 );
 ```
 
@@ -309,7 +316,7 @@ const vaultTokenAccount = getAssociatedTokenAddressSync(
 ## Token Addresses
 
 **Mainnet:**
-- **USDC:** `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+- **USDC:** `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGkGZwyTDt1v`
 - **ONyc:** `5Y8NV33Vv7WbnLfq3zBcKSdYPrk7g2KoiQoe7M2tcxp5`
 - **USDG:** `2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH`
 
@@ -338,12 +345,10 @@ const connection = new Connection("https://api.mainnet-beta.solana.com");
 const provider = new AnchorProvider(connection, wallet);
 const program = new Program(idl, provider);
 
-// Token mints
-const USDC = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+const USDC = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGkGZwyTDt1v");
 const ONYC = new PublicKey("5Y8NV33Vv7WbnLfq3zBcKSdYPrk7g2KoiQoe7M2tcxp5");
 
 async function getMarketData() {
-  // Get NAV
   const nav = await program.methods
     .getNav()
     .accounts({ tokenInMint: USDC, tokenOutMint: ONYC })
@@ -351,7 +356,6 @@ async function getMarketData() {
 
   const price = nav.toNumber() / 1e9;
 
-  // Get APY
   const apy = await program.methods
     .getApy()
     .accounts({ tokenInMint: USDC, tokenOutMint: ONYC })
