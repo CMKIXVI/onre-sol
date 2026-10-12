@@ -63,6 +63,7 @@ pub fn verify_offer_approval(
                 );
                 approver_utils::verify_approval_message_generic(
                     program_id,
+                    &offer.key,
                     user_pubkey,
                     approver1,
                     approver2,
