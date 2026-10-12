@@ -65,7 +65,7 @@ fn validate_approval_message_context(
 ) -> Result<()> {
     require!(now <= msg.expiry_unix, crate::OnreError::Expired);
     require!(msg.program_id == *program_id, crate::OnreError::WrongProgram);
-    require!(msg.offer == *offer_key, crate::OnreError::WrongOffer);
+    require!(msg.offer == *offer_key, crate::OnreError::OfferMismatch);
     require!(msg.user_pubkey == *user_pubkey, crate::OnreError::WrongUser);
     Ok(())
 }
