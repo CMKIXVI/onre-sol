@@ -170,7 +170,7 @@ console.log(`TVL: ${tvl.toString()}`);
 ```typescript
 {
   state: PublicKey,           // PDA: ["state"]
-  onycMint: PublicKey,        // From state.onycMint
+  onycMint: PublicKey,        // From state.onyc_mint
   circulatingSupplyExcludedBalance: PublicKey  // PDA: ["circ_supply_excl_balance"]
 }
 ```
